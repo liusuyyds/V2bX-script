@@ -287,9 +287,19 @@ EOF
     if [[ ! -f /etc/qingsu/custom_inbound.json ]]; then
         cp custom_inbound.json /etc/qingsu/
     fi
-    curl -o /usr/bin/${panel_cmd} -Ls ${script_raw_base}/qingsu.sh
-    chmod +x /usr/bin/${panel_cmd}
+    panel_cmd_path="/usr/bin/${panel_cmd}"
+    panel_cmd_tmp="${panel_cmd_path}.new"
+    rm -f "${panel_cmd_tmp}"
+    curl -o "${panel_cmd_tmp}" -Ls ${script_raw_base}/qingsu.sh
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}下载管理脚本失败，请检查本机能否连接 Github${plain}"
+        rm -f "${panel_cmd_tmp}"
+        exit 1
+    fi
+    chmod +x "${panel_cmd_tmp}"
     rm -f /usr/bin/qingsu
+    rm -f "${panel_cmd_path}"
+    mv -f "${panel_cmd_tmp}" "${panel_cmd_path}"
     cd $cur_dir
     rm -f install.sh
     echo -e ""

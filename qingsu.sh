@@ -305,14 +305,20 @@ install_bbr() {
 }
 
 update_shell() {
-    wget -O /usr/bin/${panel_cmd} -N --no-check-certificate ${script_raw_base}/qingsu.sh
+    panel_cmd_path="/usr/bin/${panel_cmd}"
+    panel_cmd_tmp="${panel_cmd_path}.new"
+    rm -f "${panel_cmd_tmp}"
+    wget -O "${panel_cmd_tmp}" --no-check-certificate ${script_raw_base}/qingsu.sh
     if [[ $? != 0 ]]; then
         echo ""
         echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
+        rm -f "${panel_cmd_tmp}"
         before_show_menu
     else
-        chmod +x /usr/bin/${panel_cmd}
+        chmod +x "${panel_cmd_tmp}"
         rm -f /usr/bin/qingsu
+        rm -f "${panel_cmd_path}"
+        mv -f "${panel_cmd_tmp}" "${panel_cmd_path}"
         echo -e "${green}升级脚本成功，请重新运行脚本${plain}" && exit 0
     fi
 }
