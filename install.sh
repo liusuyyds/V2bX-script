@@ -6,12 +6,14 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 cur_dir=$(pwd)
+panel_cmd="qs"
 release_repo="${QINGSU_RELEASE_REPO:-liusuyyds/V2bX-liusu}"
 script_repo="${QINGSU_SCRIPT_REPO:-liusuyyds/V2bX-script}"
 docs_url="${QINGSU_DOCS_URL:-https://github.com/liusuyyds/V2bX-liusu}"
 telemetry_url="${QINGSU_TELEMETRY_URL:-}"
 script_raw_base="https://raw.githubusercontent.com/${script_repo}/master"
 release_api="https://api.github.com/repos/${release_repo}/releases/latest"
+release_latest_url="https://github.com/${release_repo}/releases/latest"
 release_download_base="https://github.com/${release_repo}/releases/download"
 
 # check root
@@ -130,6 +132,38 @@ check_status() {
     fi
 }
 
+fetch_latest_version_from_api() {
+    curl -fsSL "${release_api}" 2>/dev/null | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
+}
+
+fetch_latest_version_from_redirect() {
+    local effective_url
+    effective_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' "${release_latest_url}" 2>/dev/null)
+    if [[ -z "${effective_url}" || "${effective_url}" == "${release_latest_url}" ]]; then
+        effective_url=$(curl -fsSI "${release_latest_url}" 2>/dev/null | grep -i '^location:' | tail -n 1 | awk '{print $2}' | tr -d '\r')
+    fi
+    if [[ -n "${effective_url}" && "${effective_url}" != "${release_latest_url}" ]]; then
+        printf '%s\n' "${effective_url##*/}"
+    fi
+}
+
+fetch_latest_version() {
+    local version
+    version=$(fetch_latest_version_from_api)
+    if [[ -n "${version}" ]]; then
+        printf '%s\n' "${version}"
+        return 0
+    fi
+
+    version=$(fetch_latest_version_from_redirect)
+    if [[ -n "${version}" ]]; then
+        printf '%s\n' "${version}"
+        return 0
+    fi
+
+    return 1
+}
+
 install_qingsu() {
     if [[ -e /srv/qingsu/ ]]; then
         rm -rf /srv/qingsu/
@@ -139,9 +173,9 @@ install_qingsu() {
     cd /srv/qingsu/
 
     if  [ $# == 0 ] ;then
-        last_version=$(curl -Ls "${release_api}" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(fetch_latest_version)
         if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}检测 qingsu 版本失败，可能是超出 Github API 限制，请稍后再试，或手动指定 qingsu 版本安装${plain}"
+            echo -e "${red}检测 qingsu 最新版本失败，可能是网络受限或 Github API 限流，请稍后再试，或手动指定 qingsu 版本安装${plain}"
             exit 1
         fi
         echo -e "检测到 qingsu 最新版本：${last_version}，开始安装"
@@ -236,7 +270,7 @@ EOF
         if [[ $? == 0 ]]; then
             echo -e "${green}qingsu 重启成功${plain}"
         else
-            echo -e "${red}qingsu 可能启动失败，请稍后使用 qingsu log 查看日志信息，若无法启动，请前往说明页查看：${docs_url}${plain}"
+            echo -e "${red}qingsu 可能启动失败，请稍后使用 ${panel_cmd} log 查看日志信息，若无法启动，请前往说明页查看：${docs_url}${plain}"
         fi
         first_install=false
     fi
@@ -253,32 +287,29 @@ EOF
     if [[ ! -f /etc/qingsu/custom_inbound.json ]]; then
         cp custom_inbound.json /etc/qingsu/
     fi
-    curl -o /usr/bin/qingsu -Ls ${script_raw_base}/qingsu.sh
-    chmod +x /usr/bin/qingsu
-    if [ ! -L /usr/bin/qs ]; then
-        ln -s /usr/bin/qingsu /usr/bin/qs
-        chmod +x /usr/bin/qs
-    fi
+    curl -o /usr/bin/${panel_cmd} -Ls ${script_raw_base}/qingsu.sh
+    chmod +x /usr/bin/${panel_cmd}
+    rm -f /usr/bin/qingsu
     cd $cur_dir
     rm -f install.sh
     echo -e ""
-    echo "qingsu 管理脚本使用方法 (兼容使用qingsu执行，大小写不敏感): "
+    echo "qingsu 管理脚本使用方法: "
     echo "------------------------------------------"
-    echo "qingsu              - 显示管理菜单 (功能更多)"
-    echo "qingsu start        - 启动 qingsu"
-    echo "qingsu stop         - 停止 qingsu"
-    echo "qingsu restart      - 重启 qingsu"
-    echo "qingsu status       - 查看 qingsu 状态"
-    echo "qingsu enable       - 设置 qingsu 开机自启"
-    echo "qingsu disable      - 取消 qingsu 开机自启"
-    echo "qingsu log          - 查看 qingsu 日志"
-    echo "qingsu x25519       - 生成 x25519 密钥"
-    echo "qingsu generate     - 生成 qingsu 配置文件"
-    echo "qingsu update       - 更新 qingsu"
-    echo "qingsu update x.x.x - 更新 qingsu 指定版本"
-    echo "qingsu install      - 安装 qingsu"
-    echo "qingsu uninstall    - 卸载 qingsu"
-    echo "qingsu version      - 查看 qingsu 版本"
+    echo "${panel_cmd}              - 显示管理菜单 (功能更多)"
+    echo "${panel_cmd} start        - 启动 qingsu"
+    echo "${panel_cmd} stop         - 停止 qingsu"
+    echo "${panel_cmd} restart      - 重启 qingsu"
+    echo "${panel_cmd} status       - 查看 qingsu 状态"
+    echo "${panel_cmd} enable       - 设置 qingsu 开机自启"
+    echo "${panel_cmd} disable      - 取消 qingsu 开机自启"
+    echo "${panel_cmd} log          - 查看 qingsu 日志"
+    echo "${panel_cmd} x25519       - 生成 x25519 密钥"
+    echo "${panel_cmd} generate     - 生成 qingsu 配置文件"
+    echo "${panel_cmd} update       - 更新 qingsu"
+    echo "${panel_cmd} update x.x.x - 更新 qingsu 指定版本"
+    echo "${panel_cmd} install      - 安装 qingsu"
+    echo "${panel_cmd} uninstall    - 卸载 qingsu"
+    echo "${panel_cmd} version      - 查看 qingsu 版本"
     echo "------------------------------------------"
     if [[ -n "${telemetry_url}" ]]; then
         curl -fsS --max-time 10 "${telemetry_url}" || true

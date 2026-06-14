@@ -4,6 +4,7 @@ red='\033[0;31m'
 green='\033[0;32m'
 yellow='\033[0;33m'
 plain='\033[0m'
+panel_cmd="qs"
 script_repo="${QINGSU_SCRIPT_REPO:-liusuyyds/V2bX-script}"
 script_raw_base="https://raw.githubusercontent.com/${script_repo}/master"
 
@@ -116,7 +117,7 @@ update() {
     fi
     bash <(curl -Ls ${script_raw_base}/install.sh) $version
     if [[ $? == 0 ]]; then
-        echo -e "${green}更新完成，已自动重启 qingsu，请使用 qingsu log 查看运行日志${plain}"
+        echo -e "${green}更新完成，已自动重启 qingsu，请使用 ${panel_cmd} log 查看运行日志${plain}"
         exit
     fi
 
@@ -171,8 +172,9 @@ uninstall() {
     rm /srv/qingsu/ -rf
 
     echo ""
+    rm /usr/bin/qingsu -f
     rm /usr/bin/qs -f
-    echo -e "卸载成功，如果你想删除此脚本，则退出脚本后运行 ${green}rm /usr/bin/qingsu -f${plain} 进行删除"
+    echo -e "卸载成功，如需确认脚本入口已删除，可执行 ${green}command -v ${panel_cmd}${plain}"
     echo ""
 
     if [[ $# == 0 ]]; then
@@ -194,9 +196,9 @@ start() {
         sleep 2
         check_status
         if [[ $? == 0 ]]; then
-            echo -e "${green}qingsu 启动成功，请使用 qingsu log 查看运行日志${plain}"
+            echo -e "${green}qingsu 启动成功，请使用 ${panel_cmd} log 查看运行日志${plain}"
         else
-            echo -e "${red}qingsu可能启动失败，请稍后使用 qingsu log 查看日志信息${plain}"
+            echo -e "${red}qingsu可能启动失败，请稍后使用 ${panel_cmd} log 查看日志信息${plain}"
         fi
     fi
 
@@ -233,9 +235,9 @@ restart() {
     sleep 2
     check_status
     if [[ $? == 0 ]]; then
-        echo -e "${green}qingsu 重启成功，请使用 qingsu log 查看运行日志${plain}"
+        echo -e "${green}qingsu 重启成功，请使用 ${panel_cmd} log 查看运行日志${plain}"
     else
-        echo -e "${red}qingsu可能启动失败，请稍后使用 qingsu log 查看日志信息${plain}"
+        echo -e "${red}qingsu可能启动失败，请稍后使用 ${panel_cmd} log 查看日志信息${plain}"
     fi
     if [[ $# == 0 ]]; then
         before_show_menu
@@ -303,13 +305,14 @@ install_bbr() {
 }
 
 update_shell() {
-    wget -O /usr/bin/qingsu -N --no-check-certificate ${script_raw_base}/qingsu.sh
+    wget -O /usr/bin/${panel_cmd} -N --no-check-certificate ${script_raw_base}/qingsu.sh
     if [[ $? != 0 ]]; then
         echo ""
         echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
         before_show_menu
     else
-        chmod +x /usr/bin/qingsu
+        chmod +x /usr/bin/${panel_cmd}
+        rm -f /usr/bin/qingsu
         echo -e "${green}升级脚本成功，请重新运行脚本${plain}" && exit 0
     fi
 }
@@ -944,21 +947,21 @@ open_ports() {
 show_usage() {
     echo "qingsu 管理脚本使用方法: "
     echo "------------------------------------------"
-    echo "qingsu              - 显示管理菜单 (功能更多)"
-    echo "qingsu start        - 启动 qingsu"
-    echo "qingsu stop         - 停止 qingsu"
-    echo "qingsu restart      - 重启 qingsu"
-    echo "qingsu status       - 查看 qingsu 状态"
-    echo "qingsu enable       - 设置 qingsu 开机自启"
-    echo "qingsu disable      - 取消 qingsu 开机自启"
-    echo "qingsu log          - 查看 qingsu 日志"
-    echo "qingsu x25519       - 生成 x25519 密钥"
-    echo "qingsu generate     - 生成 qingsu 配置文件"
-    echo "qingsu update       - 更新 qingsu"
-    echo "qingsu update x.x.x - 安装 qingsu 指定版本"
-    echo "qingsu install      - 安装 qingsu"
-    echo "qingsu uninstall    - 卸载 qingsu"
-    echo "qingsu version      - 查看 qingsu 版本"
+    echo "${panel_cmd}              - 显示管理菜单 (功能更多)"
+    echo "${panel_cmd} start        - 启动 qingsu"
+    echo "${panel_cmd} stop         - 停止 qingsu"
+    echo "${panel_cmd} restart      - 重启 qingsu"
+    echo "${panel_cmd} status       - 查看 qingsu 状态"
+    echo "${panel_cmd} enable       - 设置 qingsu 开机自启"
+    echo "${panel_cmd} disable      - 取消 qingsu 开机自启"
+    echo "${panel_cmd} log          - 查看 qingsu 日志"
+    echo "${panel_cmd} x25519       - 生成 x25519 密钥"
+    echo "${panel_cmd} generate     - 生成 qingsu 配置文件"
+    echo "${panel_cmd} update       - 更新 qingsu"
+    echo "${panel_cmd} update x.x.x - 安装 qingsu 指定版本"
+    echo "${panel_cmd} install      - 安装 qingsu"
+    echo "${panel_cmd} uninstall    - 卸载 qingsu"
+    echo "${panel_cmd} version      - 查看 qingsu 版本"
     echo "------------------------------------------"
 }
 
