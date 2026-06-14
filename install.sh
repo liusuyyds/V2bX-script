@@ -6,6 +6,13 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 cur_dir=$(pwd)
+release_repo="${QINGSU_RELEASE_REPO:-qingsu/qingsu}"
+script_repo="${QINGSU_SCRIPT_REPO:-qingsu/suye}"
+docs_url="${QINGSU_DOCS_URL:-https://example.com/qingsu}"
+telemetry_url="${QINGSU_TELEMETRY_URL:-}"
+script_raw_base="https://raw.githubusercontent.com/${script_repo}/master"
+release_api="https://api.github.com/repos/${release_repo}/releases/latest"
+release_download_base="https://github.com/${release_repo}/releases/download"
 
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
@@ -103,18 +110,18 @@ install_base() {
 
 # 0: running, 1: not running, 2: not installed
 check_status() {
-    if [[ ! -f /usr/local/V2bX/V2bX ]]; then
+    if [[ ! -f /srv/qingsu/qingsu ]]; then
         return 2
     fi
     if [[ x"${release}" == x"alpine" ]]; then
-        temp=$(service V2bX status | awk '{print $3}')
+        temp=$(service qingsu status | awk '{print $3}')
         if [[ x"${temp}" == x"started" ]]; then
             return 0
         else
             return 1
         fi
     else
-        temp=$(systemctl status V2bX | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+        temp=$(systemctl status qingsu | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
         if [[ x"${temp}" == x"running" ]]; then
             return 0
         else
@@ -123,70 +130,70 @@ check_status() {
     fi
 }
 
-install_V2bX() {
-    if [[ -e /usr/local/V2bX/ ]]; then
-        rm -rf /usr/local/V2bX/
+install_qingsu() {
+    if [[ -e /srv/qingsu/ ]]; then
+        rm -rf /srv/qingsu/
     fi
 
-    mkdir /usr/local/V2bX/ -p
-    cd /usr/local/V2bX/
+    mkdir /srv/qingsu/ -p
+    cd /srv/qingsu/
 
     if  [ $# == 0 ] ;then
-        last_version=$(curl -Ls "https://api.github.com/repos/liusuyyds/V2bX-liusu/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "${release_api}" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}检测 V2bX 版本失败，可能是超出 Github API 限制，请稍后再试，或手动指定 V2bX 版本安装${plain}"
+            echo -e "${red}检测 qingsu 版本失败，可能是超出 Github API 限制，请稍后再试，或手动指定 qingsu 版本安装${plain}"
             exit 1
         fi
-        echo -e "检测到 V2bX 最新版本：${last_version}，开始安装"
-        wget --no-check-certificate -N --progress=bar -O /usr/local/V2bX/V2bX-linux.zip https://github.com/liusuyyds/V2bX-liusu/releases/download/${last_version}/V2bX-linux-${arch}.zip
+        echo -e "检测到 qingsu 最新版本：${last_version}，开始安装"
+        wget --no-check-certificate -N --progress=bar -O /srv/qingsu/qingsu-linux.zip ${release_download_base}/${last_version}/qingsu-linux-${arch}.zip
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}下载 V2bX 失败，请确保你的服务器能够下载 Github 的文件${plain}"
+            echo -e "${red}下载 qingsu 失败，请确保你的服务器能够下载 Github 的文件${plain}"
             exit 1
         fi
     else
         last_version=$1
-        url="https://github.com/liusuyyds/V2bX-liusu/releases/download/${last_version}/V2bX-linux-${arch}.zip"
-        echo -e "开始安装 V2bX $1"
-        wget --no-check-certificate -N --progress=bar -O /usr/local/V2bX/V2bX-linux.zip ${url}
+        url="${release_download_base}/${last_version}/qingsu-linux-${arch}.zip"
+        echo -e "开始安装 qingsu $1"
+        wget --no-check-certificate -N --progress=bar -O /srv/qingsu/qingsu-linux.zip ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}下载 V2bX $1 失败，请确保此版本存在${plain}"
+            echo -e "${red}下载 qingsu $1 失败，请确保此版本存在${plain}"
             exit 1
         fi
     fi
 
-    unzip V2bX-linux.zip
-    rm V2bX-linux.zip -f
-    chmod +x V2bX
-    mkdir /etc/V2bX/ -p
-    cp geoip.dat /etc/V2bX/
-    cp geosite.dat /etc/V2bX/
+    unzip qingsu-linux.zip
+    rm qingsu-linux.zip -f
+    chmod +x qingsu
+    mkdir /etc/qingsu/ -p
+    cp geoip.dat /etc/qingsu/
+    cp geosite.dat /etc/qingsu/
     if [[ x"${release}" == x"alpine" ]]; then
-        rm /etc/init.d/V2bX -f
-        cat <<EOF > /etc/init.d/V2bX
+        rm /etc/init.d/qingsu -f
+        cat <<EOF > /etc/init.d/qingsu
 #!/sbin/openrc-run
 
-name="V2bX"
-description="V2bX"
+name="qingsu"
+description="qingsu"
 
-command="/usr/local/V2bX/V2bX"
+command="/srv/qingsu/qingsu"
 command_args="server"
 command_user="root"
 
-pidfile="/run/V2bX.pid"
+pidfile="/run/qingsu.pid"
 command_background="yes"
 
 depend() {
         need net
 }
 EOF
-        chmod +x /etc/init.d/V2bX
-        rc-update add V2bX default
-        echo -e "${green}V2bX ${last_version}${plain} 安装完成，已设置开机自启"
+        chmod +x /etc/init.d/qingsu
+        rc-update add qingsu default
+        echo -e "${green}qingsu ${last_version}${plain} 安装完成，已设置开机自启"
     else
-        rm /etc/systemd/system/V2bX.service -f
-        cat <<EOF > /etc/systemd/system/V2bX.service
+        rm /etc/systemd/system/qingsu.service -f
+        cat <<EOF > /etc/systemd/system/qingsu.service
 [Unit]
-Description=V2bX Service
+Description=qingsu Service
 After=network.target nss-lookup.target
 Wants=network.target
 
@@ -198,8 +205,8 @@ LimitAS=infinity
 LimitRSS=infinity
 LimitCORE=infinity
 LimitNOFILE=999999
-WorkingDirectory=/usr/local/V2bX/
-ExecStart=/usr/local/V2bX/V2bX server
+WorkingDirectory=/srv/qingsu/
+ExecStart=/srv/qingsu/qingsu server
 Restart=always
 RestartSec=10
 
@@ -207,78 +214,80 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
         systemctl daemon-reload
-        systemctl stop V2bX
-        systemctl enable V2bX
-        echo -e "${green}V2bX ${last_version}${plain} 安装完成，已设置开机自启"
+        systemctl stop qingsu
+        systemctl enable qingsu
+        echo -e "${green}qingsu ${last_version}${plain} 安装完成，已设置开机自启"
     fi
 
-    if [[ ! -f /etc/V2bX/config.json ]]; then
-        cp config.json /etc/V2bX/
+    if [[ ! -f /etc/qingsu/config.json ]]; then
+        cp config.json /etc/qingsu/
         echo -e ""
-        echo -e "全新安装，请先参看教程：https://v2bx.v-50.me/，配置必要的内容"
+        echo -e "全新安装，请先参看教程：${docs_url}，配置必要的内容"
         first_install=true
     else
         if [[ x"${release}" == x"alpine" ]]; then
-            service V2bX start
+            service qingsu start
         else
-            systemctl start V2bX
+            systemctl start qingsu
         fi
         sleep 2
         check_status
         echo -e ""
         if [[ $? == 0 ]]; then
-            echo -e "${green}V2bX 重启成功${plain}"
+            echo -e "${green}qingsu 重启成功${plain}"
         else
-            echo -e "${red}V2bX 可能启动失败，请稍后使用 V2bX log 查看日志信息，若无法启动，则可能更改了配置格式，请前往 wiki 查看：https://github.com/V2bX-project/V2bX/wiki${plain}"
+            echo -e "${red}qingsu 可能启动失败，请稍后使用 qingsu log 查看日志信息，若无法启动，则可能更改了配置格式，请前往 wiki 查看：https://github.com/qingsu-project/qingsu/wiki${plain}"
         fi
         first_install=false
     fi
 
-    if [[ ! -f /etc/V2bX/dns.json ]]; then
-        cp dns.json /etc/V2bX/
+    if [[ ! -f /etc/qingsu/dns.json ]]; then
+        cp dns.json /etc/qingsu/
     fi
-    if [[ ! -f /etc/V2bX/route.json ]]; then
-        cp route.json /etc/V2bX/
+    if [[ ! -f /etc/qingsu/route.json ]]; then
+        cp route.json /etc/qingsu/
     fi
-    if [[ ! -f /etc/V2bX/custom_outbound.json ]]; then
-        cp custom_outbound.json /etc/V2bX/
+    if [[ ! -f /etc/qingsu/custom_outbound.json ]]; then
+        cp custom_outbound.json /etc/qingsu/
     fi
-    if [[ ! -f /etc/V2bX/custom_inbound.json ]]; then
-        cp custom_inbound.json /etc/V2bX/
+    if [[ ! -f /etc/qingsu/custom_inbound.json ]]; then
+        cp custom_inbound.json /etc/qingsu/
     fi
-    curl -o /usr/bin/V2bX -Ls https://raw.githubusercontent.com/liusuyyds/V2bX-script/master/V2bX.sh
-    chmod +x /usr/bin/V2bX
-    if [ ! -L /usr/bin/v2bx ]; then
-        ln -s /usr/bin/V2bX /usr/bin/v2bx
-        chmod +x /usr/bin/v2bx
+    curl -o /usr/bin/qingsu -Ls ${script_raw_base}/qingsu.sh
+    chmod +x /usr/bin/qingsu
+    if [ ! -L /usr/bin/qs ]; then
+        ln -s /usr/bin/qingsu /usr/bin/qs
+        chmod +x /usr/bin/qs
     fi
     cd $cur_dir
     rm -f install.sh
     echo -e ""
-    echo "V2bX 管理脚本使用方法 (兼容使用V2bX执行，大小写不敏感): "
+    echo "qingsu 管理脚本使用方法 (兼容使用qingsu执行，大小写不敏感): "
     echo "------------------------------------------"
-    echo "V2bX              - 显示管理菜单 (功能更多)"
-    echo "V2bX start        - 启动 V2bX"
-    echo "V2bX stop         - 停止 V2bX"
-    echo "V2bX restart      - 重启 V2bX"
-    echo "V2bX status       - 查看 V2bX 状态"
-    echo "V2bX enable       - 设置 V2bX 开机自启"
-    echo "V2bX disable      - 取消 V2bX 开机自启"
-    echo "V2bX log          - 查看 V2bX 日志"
-    echo "V2bX x25519       - 生成 x25519 密钥"
-    echo "V2bX generate     - 生成 V2bX 配置文件"
-    echo "V2bX update       - 更新 V2bX"
-    echo "V2bX update x.x.x - 更新 V2bX 指定版本"
-    echo "V2bX install      - 安装 V2bX"
-    echo "V2bX uninstall    - 卸载 V2bX"
-    echo "V2bX version      - 查看 V2bX 版本"
+    echo "qingsu              - 显示管理菜单 (功能更多)"
+    echo "qingsu start        - 启动 qingsu"
+    echo "qingsu stop         - 停止 qingsu"
+    echo "qingsu restart      - 重启 qingsu"
+    echo "qingsu status       - 查看 qingsu 状态"
+    echo "qingsu enable       - 设置 qingsu 开机自启"
+    echo "qingsu disable      - 取消 qingsu 开机自启"
+    echo "qingsu log          - 查看 qingsu 日志"
+    echo "qingsu x25519       - 生成 x25519 密钥"
+    echo "qingsu generate     - 生成 qingsu 配置文件"
+    echo "qingsu update       - 更新 qingsu"
+    echo "qingsu update x.x.x - 更新 qingsu 指定版本"
+    echo "qingsu install      - 安装 qingsu"
+    echo "qingsu uninstall    - 卸载 qingsu"
+    echo "qingsu version      - 查看 qingsu 版本"
     echo "------------------------------------------"
-    curl -fsS --max-time 10 "https://api.v-50.me/counter_v2bx" || true
+    if [[ -n "${telemetry_url}" ]]; then
+        curl -fsS --max-time 10 "${telemetry_url}" || true
+    fi
     # 首次安装询问是否生成配置文件
     if [[ $first_install == true ]]; then
-        read -rp "检测到你为第一次安装V2bX,是否自动直接生成配置文件？(y/n): " if_generate
+        read -rp "检测到你为第一次安装qingsu,是否自动直接生成配置文件？(y/n): " if_generate
         if [[ $if_generate == [Yy] ]]; then
-            curl -o ./initconfig.sh -Ls https://raw.githubusercontent.com/liusuyyds/V2bX-script/master/initconfig.sh
+            curl -o ./initconfig.sh -Ls ${script_raw_base}/initconfig.sh
             source initconfig.sh
             rm initconfig.sh -f
             generate_config_file
@@ -288,4 +297,4 @@ EOF
 
 echo -e "${green}开始安装${plain}"
 install_base
-install_V2bX $1
+install_qingsu $1
