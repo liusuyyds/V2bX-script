@@ -210,7 +210,6 @@ name="qingsu"
 description="qingsu"
 
 command="/srv/qingsu/qingsu"
-command_args="server"
 command_user="root"
 
 pidfile="/run/qingsu.pid"
@@ -240,7 +239,7 @@ LimitRSS=infinity
 LimitCORE=infinity
 LimitNOFILE=999999
 WorkingDirectory=/srv/qingsu/
-ExecStart=/srv/qingsu/qingsu server
+ExecStart=/srv/qingsu/qingsu
 Restart=always
 RestartSec=10
 
