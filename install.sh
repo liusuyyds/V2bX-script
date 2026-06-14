@@ -6,9 +6,9 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 cur_dir=$(pwd)
-release_repo="${QINGSU_RELEASE_REPO:-qingsu/qingsu}"
-script_repo="${QINGSU_SCRIPT_REPO:-qingsu/suye}"
-docs_url="${QINGSU_DOCS_URL:-https://example.com/qingsu}"
+release_repo="${QINGSU_RELEASE_REPO:-liusuyyds/V2bX-liusu}"
+script_repo="${QINGSU_SCRIPT_REPO:-liusuyyds/V2bX-script}"
+docs_url="${QINGSU_DOCS_URL:-https://github.com/liusuyyds/V2bX-liusu}"
 telemetry_url="${QINGSU_TELEMETRY_URL:-}"
 script_raw_base="https://raw.githubusercontent.com/${script_repo}/master"
 release_api="https://api.github.com/repos/${release_repo}/releases/latest"
@@ -236,7 +236,7 @@ EOF
         if [[ $? == 0 ]]; then
             echo -e "${green}qingsu 重启成功${plain}"
         else
-            echo -e "${red}qingsu 可能启动失败，请稍后使用 qingsu log 查看日志信息，若无法启动，则可能更改了配置格式，请前往 wiki 查看：https://github.com/qingsu-project/qingsu/wiki${plain}"
+            echo -e "${red}qingsu 可能启动失败，请稍后使用 qingsu log 查看日志信息，若无法启动，请前往说明页查看：${docs_url}${plain}"
         fi
         first_install=false
     fi

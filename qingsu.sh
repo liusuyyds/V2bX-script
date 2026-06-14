@@ -4,7 +4,7 @@ red='\033[0;31m'
 green='\033[0;32m'
 yellow='\033[0;33m'
 plain='\033[0m'
-script_repo="${QINGSU_SCRIPT_REPO:-qingsu/suye}"
+script_repo="${QINGSU_SCRIPT_REPO:-liusuyyds/V2bX-script}"
 script_raw_base="https://raw.githubusercontent.com/${script_repo}/master"
 
 # check root
@@ -965,7 +965,7 @@ show_usage() {
 show_menu() {
     echo -e "
   ${green}qingsu 后端管理脚本，${plain}${red}不适用于docker${plain}
- --- https://github.com/qingsu/qingsu ---
+ --- https://github.com/liusuyyds/V2bX-liusu ---
   ${green}0.${plain} 修改配置
 ————————————————
   ${green}1.${plain} 安装 qingsu
