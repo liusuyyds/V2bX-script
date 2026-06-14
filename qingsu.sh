@@ -5,6 +5,7 @@ green='\033[0;32m'
 yellow='\033[0;33m'
 plain='\033[0m'
 panel_cmd="qs"
+encrypt_api_key_choice="y"
 script_repo="${QINGSU_SCRIPT_REPO:-liusuyyds/V2bX-script}"
 script_raw_base="https://raw.githubusercontent.com/${script_repo}/master"
 
@@ -425,6 +426,17 @@ generate_x25519_key() {
     fi
 }
 
+encrypt_panel_api_key() {
+    if [[ "${encrypt_api_key_choice}" =~ ^[Nn][Oo]?$ ]]; then
+        return 0
+    fi
+    ApiKey=$(/srv/qingsu/qingsu apikey --value "$ApiKey")
+    if [[ $? -ne 0 || -z "$ApiKey" ]]; then
+        echo -e "${red}ApiKey 加密失败，请稍后重试${plain}"
+        exit 1
+    fi
+}
+
 show_qingsu_version() {
     echo -n "qingsu 版本："
     /srv/qingsu/qingsu version
@@ -650,6 +662,9 @@ generate_config_file() {
         if [ "$first_node" = true ]; then
             read -rp "请输入机场网址(https://example.com)：" ApiHost
             read -rp "请输入面板对接API Key：" ApiKey
+            read -rp "是否加密面板对接API Key？(Y/n)" encrypt_api_key_choice
+            [[ -z "${encrypt_api_key_choice}" ]] && encrypt_api_key_choice="y"
+            encrypt_panel_api_key
             read -rp "是否设置固定的机场网址和API Key？(y/n)" fixed_api
             if [ "$fixed_api" = "y" ] || [ "$fixed_api" = "Y" ]; then
                 fixed_api_info=true
@@ -664,6 +679,7 @@ generate_config_file() {
             elif [ "$fixed_api_info" = false ]; then
                 read -rp "请输入机场网址：" ApiHost
                 read -rp "请输入面板对接API Key：" ApiKey
+                encrypt_panel_api_key
             fi
             add_node_config
         fi
@@ -962,6 +978,7 @@ show_usage() {
     echo "${panel_cmd} disable      - 取消 qingsu 开机自启"
     echo "${panel_cmd} log          - 查看 qingsu 日志"
     echo "${panel_cmd} x25519       - 生成 x25519 密钥"
+    echo "${panel_cmd} apikey [key] - 输出加密后的面板 API Key"
     echo "${panel_cmd} generate     - 生成 qingsu 配置文件"
     echo "${panel_cmd} update       - 更新 qingsu"
     echo "${panel_cmd} update x.x.x - 安装 qingsu 指定版本"
@@ -1018,7 +1035,7 @@ show_menu() {
         12) check_install && show_qingsu_version ;;
         13) check_install && generate_x25519_key ;;
         14) update_shell ;;
-        15) generate_config_file ;;
+        15) check_install && generate_config_file ;;
         16) open_ports ;;
         17) exit ;;
         *) echo -e "${red}请输入正确的数字 [0-16]${plain}" ;;
@@ -1037,10 +1054,11 @@ if [[ $# > 0 ]]; then
         "log") check_install 0 && show_log 0 ;;
         "update") check_install 0 && update 0 $2 ;;
         "config") config $* ;;
-        "generate") generate_config_file ;;
+        "generate") check_install 0 && generate_config_file ;;
         "install") check_uninstall 0 && install 0 ;;
         "uninstall") check_install 0 && uninstall 0 ;;
         "x25519") check_install 0 && generate_x25519_key 0 ;;
+        "apikey") check_install 0 && /srv/qingsu/qingsu apikey "${@:2}" ;;
         "version") check_install 0 && show_qingsu_version 0 ;;
         "update_shell") update_shell ;;
         *) show_usage

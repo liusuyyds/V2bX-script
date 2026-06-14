@@ -1,6 +1,8 @@
 #!/bin/bash
 # 一键配置
 
+encrypt_api_key_choice="y"
+
 # 检查系统是否有 IPv6 地址
 check_ipv6_support() {
     if ip -6 addr | grep -q "inet6"; then
@@ -202,6 +204,17 @@ EOF
     nodes_config+=("$node_config")
 }
 
+encrypt_panel_api_key() {
+    if [[ "${encrypt_api_key_choice}" =~ ^[Nn][Oo]?$ ]]; then
+        return 0
+    fi
+    ApiKey=$(/srv/qingsu/qingsu apikey --value "$ApiKey")
+    if [[ $? -ne 0 || -z "$ApiKey" ]]; then
+        echo -e "${red}ApiKey 加密失败，请稍后重试${plain}"
+        exit 1
+    fi
+}
+
 generate_config_file() {
     echo -e "${yellow}qingsu 配置文件生成向导${plain}"
     echo -e "${red}请阅读以下注意事项：${plain}"
@@ -227,6 +240,9 @@ generate_config_file() {
         if [ "$first_node" = true ]; then
             read -rp "请输入机场网址(https://example.com)：" ApiHost
             read -rp "请输入面板对接API Key：" ApiKey
+            read -rp "是否加密面板对接API Key？(Y/n)" encrypt_api_key_choice
+            [[ -z "${encrypt_api_key_choice}" ]] && encrypt_api_key_choice="y"
+            encrypt_panel_api_key
             read -rp "是否设置固定的机场网址和API Key？(y/n)" fixed_api
             if [ "$fixed_api" = "y" ] || [ "$fixed_api" = "Y" ]; then
                 fixed_api_info=true
@@ -241,6 +257,7 @@ generate_config_file() {
             elif [ "$fixed_api_info" = false ]; then
                 read -rp "请输入机场网址(https://example.com)：" ApiHost
                 read -rp "请输入面板对接API Key：" ApiKey
+                encrypt_panel_api_key
             fi
             add_node_config
         fi

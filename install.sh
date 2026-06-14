@@ -313,6 +313,7 @@ EOF
     echo "${panel_cmd} disable      - 取消 qingsu 开机自启"
     echo "${panel_cmd} log          - 查看 qingsu 日志"
     echo "${panel_cmd} x25519       - 生成 x25519 密钥"
+    echo "${panel_cmd} apikey [key] - 输出加密后的面板 API Key"
     echo "${panel_cmd} generate     - 生成 qingsu 配置文件"
     echo "${panel_cmd} update       - 更新 qingsu"
     echo "${panel_cmd} update x.x.x - 更新 qingsu 指定版本"
