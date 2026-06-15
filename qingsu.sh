@@ -426,10 +426,25 @@ generate_x25519_key() {
     fi
 }
 
+check_apikey_encrypt_support() {
+    /srv/qingsu/qingsu apikey --help >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        local installed_version
+        installed_version=$(/srv/qingsu/qingsu version 2>/dev/null | tr -d '\r')
+        echo -e "${red}当前 qingsu 内核不支持 ApiKey 加密。请先执行 ${panel_cmd} update v0.4.7 升级到 v0.4.7 或以上版本后再试。${plain}"
+        if [[ -n "${installed_version}" ]]; then
+            echo -e "${yellow}当前版本: ${installed_version}${plain}"
+        fi
+        return 1
+    fi
+    return 0
+}
+
 encrypt_panel_api_key() {
     if [[ "${encrypt_api_key_choice}" =~ ^[Nn][Oo]?$ ]]; then
         return 0
     fi
+    check_apikey_encrypt_support || exit 1
     ApiKey=$(/srv/qingsu/qingsu apikey --value "$ApiKey")
     if [[ $? -ne 0 || -z "$ApiKey" ]]; then
         echo -e "${red}ApiKey 加密失败，请稍后重试${plain}"
@@ -1058,7 +1073,7 @@ if [[ $# > 0 ]]; then
         "install") check_uninstall 0 && install 0 ;;
         "uninstall") check_install 0 && uninstall 0 ;;
         "x25519") check_install 0 && generate_x25519_key 0 ;;
-        "apikey") check_install 0 && /srv/qingsu/qingsu apikey "${@:2}" ;;
+        "apikey") check_install 0 && check_apikey_encrypt_support && /srv/qingsu/qingsu apikey "${@:2}" ;;
         "version") check_install 0 && show_qingsu_version 0 ;;
         "update_shell") update_shell ;;
         *) show_usage
