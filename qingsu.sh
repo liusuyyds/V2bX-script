@@ -675,7 +675,7 @@ generate_config_file() {
     
     while true; do
         if [ "$first_node" = true ]; then
-            read -rp "请输入机场网址(https://example.com)：" ApiHost
+            read -rp "请输入机场网址，示例：https://example.com：" ApiHost
             read -rp "请输入面板对接API Key：" ApiKey
             read -rp "是否加密面板对接API Key？(Y/n)" encrypt_api_key_choice
             [[ -z "${encrypt_api_key_choice}" ]] && encrypt_api_key_choice="y"
@@ -692,7 +692,7 @@ generate_config_file() {
             if [[ "$continue_adding_node" =~ ^[Nn][Oo]? ]]; then
                 break
             elif [ "$fixed_api_info" = false ]; then
-                read -rp "请输入机场网址：" ApiHost
+                read -rp "请输入机场网址，示例：https://example.com：" ApiHost
                 read -rp "请输入面板对接API Key：" ApiKey
                 encrypt_panel_api_key
             fi
